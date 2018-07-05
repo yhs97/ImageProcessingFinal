@@ -11,25 +11,25 @@ import imutils
 import sys
 from PIL import Image
 def step3(image,orig,scannedPath,uniqueName):
-		warped = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
+	warped = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
 
-		kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
-		im=cv2.filter2D(orig,-1,kernel)
-		
+	kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
+	im=cv2.filter2D(orig,-1,kernel)
+	
 
-		imginv=cv2.bitwise_not(im.copy())
+	imginv=cv2.bitwise_not(im.copy())
 
-		T = threshold_local(warped , 25, offset = 10, method = "gaussian")
-		warped = (warped > T).astype("uint8") * 255
-		#equ = cv2.equalizeHist(warped)
+	T = threshold_local(warped , 25, offset = 10, method = "gaussian")
+	warped = (warped > T).astype("uint8") * 255
+	#equ = cv2.equalizeHist(warped)
 
-		
-		print("STEP 3: Apply perspective transform")
-		#cv2.imshow("Original", imutils.resize(orig, height = 650))
-		
-		cv2.imwrite(scannedPath+uniqueName+"_clear.jpg",im)
-		cv2.imwrite(scannedPath+uniqueName+"_inverted.jpg",imginv)
-		cv2.imwrite(scannedPath+uniqueName+"_scanned.jpg",warped)
+	
+	print("STEP 3: Apply perspective transform")
+	#cv2.imshow("Original", imutils.resize(orig, height = 650))
+	
+	cv2.imwrite(scannedPath+uniqueName+"_clear.jpg",im)
+	cv2.imwrite(scannedPath+uniqueName+"_inverted.jpg",imginv)
+	cv2.imwrite(scannedPath+uniqueName+"_scanned.jpg",warped)
 
 def scanflask(imagepath, uniqueName, scannedPath):
 
