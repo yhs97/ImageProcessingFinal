@@ -10,6 +10,27 @@ import cv2
 import imutils
 import sys
 from PIL import Image
+def step3(image,orig,scannedPath,uniqueName):
+		warped = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
+
+		kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
+		im=cv2.filter2D(orig,-1,kernel)
+		
+
+		imginv=cv2.bitwise_not(im.copy())
+
+		T = threshold_local(warped , 25, offset = 10, method = "gaussian")
+		warped = (warped > T).astype("uint8") * 255
+		#equ = cv2.equalizeHist(warped)
+
+		
+		print("STEP 3: Apply perspective transform")
+		#cv2.imshow("Original", imutils.resize(orig, height = 650))
+		
+		cv2.imwrite(scannedPath+uniqueName+"_clear.jpg",im)
+		cv2.imwrite(scannedPath+uniqueName+"_inverted.jpg",imginv)
+		cv2.imwrite(scannedPath+uniqueName+"_scanned.jpg",warped)
+
 def scanflask(imagepath, uniqueName, scannedPath):
 
 	image = cv2.imread(imagepath)
@@ -72,39 +93,20 @@ def scanflask(imagepath, uniqueName, scannedPath):
 			break
 
 
-	def step3():
-		warped = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
-
-		kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
-		im=cv2.filter2D(orig,-1,kernel)
-		
-
-		imginv=cv2.bitwise_not(im.copy())
-
-		T = threshold_local(warped , 25, offset = 10, method = "gaussian")
-		warped = (warped > T).astype("uint8") * 255
-		#equ = cv2.equalizeHist(warped)
-
-		
-		print("STEP 3: Apply perspective transform")
-		#cv2.imshow("Original", imutils.resize(orig, height = 650))
-		
-		cv2.imwrite(scannedPath+uniqueName+"_clear.jpg",im)
-		cv2.imwrite(scannedPath+uniqueName+"_inverted.jpg",imginv)
-		cv2.imwrite(scannedPath+uniqueName+"_scanned.jpg",warped)
-
 
 
 	try:
 		screenCnt
 
 	except NameError:
-		step3()
+		step3(image,orig,scannedPath,uniqueName)
 
 
 	else:
-		if cv2.contourArea(screenCnt)<10500:
-			step3()
+		if cv2.contourArea(screenCnt)<12000:
+			print('reached till here')
+			step3(image,orig,scannedPath,uniqueName)
+			return
 		# show the contour (outline) of the piece of paper
 		print(cv2.contourArea(screenCnt))
 		print("STEP 2: Find contours of paper")
@@ -143,4 +145,6 @@ def scanflask(imagepath, uniqueName, scannedPath):
 
 		#cv2.imshow("Clear", imutils.resize(im, height = 650))
 		#cv2.waitKey(0)
+
+
 
