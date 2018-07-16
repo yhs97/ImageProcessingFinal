@@ -8,7 +8,16 @@ import argparse
 import cv2
 import imutils
 import sys
+import boto3
+import botocore
 from scanp import scanflask
+
+
+BUCKET_NAME = 'pe-inhanced-images'
+KEY = 'test.jpg'
+extension=KEY.rsplit('.', 1)[1]
+s3 = boto3.resource('s3') 
+
 app = Flask(__name__,  static_url_path=os.path.dirname(os.path.realpath(__file__)))
 app.secret_key = 'random string'
 
@@ -43,6 +52,34 @@ def convert():
     filename = ""
     if request.method == 'POST':
         # check if the post request has the file part
+        
+        s3.Bucket(BUCKET_NAME).download_file(KEY, 'my_local_image1.'+extension)
+
+        file='my_local_image1.jpg'
+        name=file.rsplit('.', 1)[0]
+        if name and allowed_file(file):
+            originalFilename = file
+            #file.save(os.path.join(app.config['UPLOAD_FOLDER'], originalFilename))
+            path=app.config['UPLOAD_FOLDER']+'/'+originalFilename
+            scanflask(file, app.static_url_path +'/scannedImages/', extension)
+
+            stamp= str(int(time.time()))
+            
+            data1 = open(app.static_url_path + '/scannedImages/_clear.jpg', 'rb')
+            key1 = 'clear'+stamp
+            s3.Bucket('pe-inhanced-images').put_object(Key=key1+'.'+extension, Body=data1)    
+            
+            data2 = open(app.static_url_path + '/scannedImages/_scanned.jpg', 'rb')
+            key2 = 'scanned'+stamp   
+            s3.Bucket('pe-inhanced-images').put_object(Key=key2+'.'+extension, Body=data2)
+
+            data3 = open(app.static_url_path + '/scannedImages/_inverted.jpg', 'rb')
+            key3='inverted'+stamp   
+            s3.Bucket('pe-inhanced-images').put_object(Key=key3+'.'+extension, Body=data3)
+
+
+        
+        '''
         file = request.files['file']
         if file and allowed_file(file.filename):
             originalFilename = file.filename
@@ -51,17 +88,17 @@ def convert():
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], originalFilename))
             path=app.config['UPLOAD_FOLDER']+'/'+originalFilename
             scanflask(path, uniqueFilename, app.static_url_path +'/scannedImages/')
-        
+        '''
         #else :
 
 
             
-    return uniqueFilename
+    return file
  
  
 if __name__ == "__main__":
     
-    app.run(debug=True, port=4998)    
+    app.run(debug=True, port=5000)    
     app.secret_key = 'super secret key'
     app.config['SESSION_TYPE'] = 'filesystem'
     session.init_app(app)

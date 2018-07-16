@@ -10,7 +10,7 @@ import cv2
 import imutils
 import sys
 from PIL import Image
-def step3(image,orig,scannedPath,uniqueName):
+def step3(image,orig,scannedPath,extension):
 	warped = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
 
 	kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
@@ -27,11 +27,11 @@ def step3(image,orig,scannedPath,uniqueName):
 	print("STEP 3: Apply perspective transform")
 	#cv2.imshow("Original", imutils.resize(orig, height = 650))
 	
-	cv2.imwrite(scannedPath+uniqueName+"_clear.jpg",im)
-	cv2.imwrite(scannedPath+uniqueName+"_inverted.jpg",imginv)
-	cv2.imwrite(scannedPath+uniqueName+"_scanned.jpg",warped)
+	cv2.imwrite(scannedPath+"_clear."+extension,im)
+	cv2.imwrite(scannedPath+"_inverted."+extension,imginv)
+	cv2.imwrite(scannedPath+"_scanned."+extension,warped)
 
-def scanflask(imagepath, uniqueName, scannedPath):
+def scanflask(imagepath, scannedPath,extension):
 
 	image = cv2.imread(imagepath)
 	ratio = image.shape[0] / 500.0
@@ -72,7 +72,7 @@ def scanflask(imagepath, uniqueName, scannedPath):
 
 
 	#edged.save(os.path.join(app.config['UPLOAD_FOLDER'], 'edged'))
-	cv2.imwrite(scannedPath+"edges.jpg",edged)
+	#cv2.imwrite(scannedPath+"_edges."+extension,edged)
 
 	# find the contours in the edged image, keeping only the
 	# largest ones, and initialize the screen contour
@@ -80,14 +80,13 @@ def scanflask(imagepath, uniqueName, scannedPath):
 	cnts = cnts[0] if imutils.is_cv2() else cnts[1]
 	cnts = sorted(cnts, key = cv2.contourArea, reverse = True)[:5]
 
-	# loop over the contours
 	for c in cnts:
 		# approximate the contour
 		peri = cv2.arcLength(c, True)
 		approx = cv2.approxPolyDP(c, 0.05 * peri, True)
 
 		# if our approximated contour has four points, then we
-		# can assume that we have found our screen
+		# can assume that we have found our object
 		if len(approx) == 4:
 			screenCnt = approx
 			break
@@ -99,13 +98,14 @@ def scanflask(imagepath, uniqueName, scannedPath):
 		screenCnt
 
 	except NameError:
-		step3(image,orig,scannedPath,uniqueName)
+		step3(image,orig,scannedPath,extension)
 
 
 	else:
-		if cv2.contourArea(screenCnt)<12000:
+		if cv2.contourArea(screenCnt)<11000:
 			print('reached till here')
-			step3(image,orig,scannedPath,uniqueName)
+			print(cv2.contourArea(screenCnt))
+			step3(image,orig,scannedPath,extension)
 			return
 		# show the contour (outline) of the piece of paper
 		print(cv2.contourArea(screenCnt))
@@ -114,7 +114,7 @@ def scanflask(imagepath, uniqueName, scannedPath):
 		cv2.drawContours(image, [screenCnt], -1, (0, 255, 0), 2)
 		#cv2.imshow("Outline", image)
 
-		cv2.imwrite(scannedPath+"outline.jpg",image)
+		cv2.imwrite(scannedPath+"outline."+extension,image)
 		#cv2.waitKey(0)
 		#cv2.destroyAllWindows()
 		
@@ -128,7 +128,7 @@ def scanflask(imagepath, uniqueName, scannedPath):
 		kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
 		im=cv2.filter2D(warped,-1,kernel)
 
-
+		imginv=cv2.bitwise_not(im.copy())
 
 		warped = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
 		T = threshold_local(warped, 11, offset = 10, method = "gaussian")
@@ -139,9 +139,9 @@ def scanflask(imagepath, uniqueName, scannedPath):
 
 		print("STEP 3: Apply perspective transform")
 		#cv2.imshow("Original", imutils.resize(orig, height = 650))
-
-		cv2.imwrite(scannedPath+uniqueName+"_scanned.jpg",warped)
-		cv2.imwrite(scannedPath+uniqueName+"_clear.jpg",im)
+		cv2.imwrite(scannedPath+"_inverted."+extension,imginv)
+		cv2.imwrite(scannedPath+"_scanned."+extension,warped)
+		cv2.imwrite(scannedPath+"_clear."+extension,im)
 
 		#cv2.imshow("Clear", imutils.resize(im, height = 650))
 		#cv2.waitKey(0)
