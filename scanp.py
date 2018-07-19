@@ -24,7 +24,7 @@ def step3(image,orig,scannedPath,extension):
 	#equ = cv2.equalizeHist(warped)
 
 	
-	print("STEP 3: Apply perspective transform")
+	print("STEP 3: Sharpening Image")
 	#cv2.imshow("Original", imutils.resize(orig, height = 650))
 	
 	cv2.imwrite(scannedPath+"_clear."+extension,im)
@@ -114,7 +114,7 @@ def scanflask(imagepath, scannedPath,extension):
 		cv2.drawContours(image, [screenCnt], -1, (0, 255, 0), 2)
 		#cv2.imshow("Outline", image)
 
-		cv2.imwrite(scannedPath+"outline."+extension,image)
+		#cv2.imwrite(scannedPath+"outline."+extension,image)
 		#cv2.waitKey(0)
 		#cv2.destroyAllWindows()
 		

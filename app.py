@@ -1,25 +1,31 @@
-from flask import Flask, flash, redirect, render_template, request, session, abort, send_from_directory
+from flask import Flask, flash, redirect, render_template, request, session, abort, send_from_directory, jsonify
 import time;
 import os
 from transformp.transform import four_point_transform
 from skimage.filters import threshold_local
 import numpy as np
 import argparse
+import json
 import cv2
 import imutils
 import sys
 import boto3
+import requests
 import botocore
+from urlparse import urlparse
 from scanp import scanflask
+from flask_cors import CORS
 
 
 BUCKET_NAME = 'pe-inhanced-images'
-KEY = 'test.jpg'
-extension=KEY.rsplit('.', 1)[1]
+#KEY = 'test.jpg'
+#extension=KEY.rsplit('.', 1)[1]
+
 s3 = boto3.resource('s3') 
 
 app = Flask(__name__,  static_url_path=os.path.dirname(os.path.realpath(__file__)))
 app.secret_key = 'random string'
+CORS(app)
 
 UPLOAD_FOLDER=app.static_url_path+'/uploads'
 
@@ -44,39 +50,59 @@ def index():
 
 
 
-@app.route("/convert" , methods=['POST'])
+@app.route("/convert" , methods=['GET'])
 def convert():
     #if request.method == 'POST':
     #	if 'file' not in request.files:
     #        flash('No file part')
     filename = ""
-    if request.method == 'POST':
+    if request.method == 'GET':
         # check if the post request has the file part
+        imageUrl = request.args['img_src'];
+        print imageUrl
+        ext=imageUrl.rsplit('.')
+        length=len(ext)
+        extension=ext[length-1]    
+        print extension
+        o = urlparse(imageUrl)
         
-        s3.Bucket(BUCKET_NAME).download_file(KEY, 'my_local_image1.'+extension)
+        bucketName=o.netloc.rsplit('.s3',1)[0]
+        KEY=o.path
+        KEY=KEY[1:]
+        print KEY
+        print bucketName
+        downloadedFileName='local_image.'
+        downloadedFileName=downloadedFileName+extension
 
-        file='my_local_image1.jpg'
-        name=file.rsplit('.', 1)[0]
+
+        s3.Bucket(bucketName).download_file(KEY, downloadedFileName)
+
+        file = 'local_image.'+extension
+        name = file.rsplit('.', 1)[0]
         if name and allowed_file(file):
             originalFilename = file
             #file.save(os.path.join(app.config['UPLOAD_FOLDER'], originalFilename))
             path=app.config['UPLOAD_FOLDER']+'/'+originalFilename
             scanflask(file, app.static_url_path +'/scannedImages/', extension)
 
+            s3c=boto3.client('s3' ,region_name='ap-southeast-1')
+            
             stamp= str(int(time.time()))
             
-            data1 = open(app.static_url_path + '/scannedImages/_clear.jpg', 'rb')
-            key1 = 'clear'+stamp
-            s3.Bucket('pe-inhanced-images').put_object(Key=key1+'.'+extension, Body=data1)    
-            
-            data2 = open(app.static_url_path + '/scannedImages/_scanned.jpg', 'rb')
-            key2 = 'scanned'+stamp   
-            s3.Bucket('pe-inhanced-images').put_object(Key=key2+'.'+extension, Body=data2)
+            data1 = open(app.static_url_path + '/scannedImages/_clear.'+extension, 'rb')
+            key = 'clear'+stamp+'.'+extension
+            s3.Bucket('pe-inhanced-images').put_object(Key=key, Body=data1)   
 
-            data3 = open(app.static_url_path + '/scannedImages/_inverted.jpg', 'rb')
-            key3='inverted'+stamp   
-            s3.Bucket('pe-inhanced-images').put_object(Key=key3+'.'+extension, Body=data3)
+            url = s3c.generate_presigned_url(ClientMethod='get_object',Params={'Bucket': 'pe-inhanced-images','Key': key,},                                  
+                                            ExpiresIn=600)
+            # data2 = open(app.static_url_path + '/scannedImages/_scanned.'+extension, 'rb')
+            # key2 = 'scanned'+stamp   
+            # s3.Bucket('pe-inhanced-images').put_object(Key=key2+'.'+extension, Body=data2)
 
+            # data3 = open(app.static_url_path + '/scannedImages/_inverted.'+extension, 'rb')
+            # key3='inverted'+stamp   
+            # s3.Bucket('pe-inhanced-images').put_object(Key=key3+'.'+extension, Body=data3)
+             
 
         
         '''
@@ -90,11 +116,8 @@ def convert():
             scanflask(path, uniqueFilename, app.static_url_path +'/scannedImages/')
         '''
         #else :
-
-
-            
-    return file
- 
+    return json.dumps({'url': url}), 200, {'Content-Type':'application/json'} 
+             
  
 if __name__ == "__main__":
     
