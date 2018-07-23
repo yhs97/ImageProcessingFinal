@@ -69,8 +69,9 @@ def convert():
         bucketName = o.netloc.rsplit('.s3',1)[0]
         KEY=o.path
         KEY=KEY[1:]
-        print KEY
-        print bucketName
+        newKEY=KEY
+        #print KEY
+        #print bucketName
         downloadedFileName = 'local_image.'
         downloadedFileName = downloadedFileName+extension
 
@@ -78,8 +79,12 @@ def convert():
         try:
             s3.Bucket(bucketName).download_file(KEY, downloadedFileName)
         except:
-            newBucketName=KEY.rsplit('/',1)[0]
-            s3.Bucket(newBucketName).download_file(KEY, downloadedFileName)
+            print newKEY
+            newKEY=newKEY.split('/',1)[1]
+            print newKEY
+            newBucketName=KEY.rsplit('/')[0]
+            print newBucketName
+            s3.Bucket(newBucketName).download_file(newKEY, downloadedFileName)
 
         file = 'local_image.'+extension
         name = file.rsplit('.', 1)[0]
