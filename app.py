@@ -61,33 +61,37 @@ def convert():
         imageUrl = request.args['img_src'];
         print imageUrl
         ext=imageUrl.rsplit('.')
-        length=len(ext)
-        extension=ext[length-1]    
+        length = len(ext)
+        extension = ext[length-1]    
         print extension
         o = urlparse(imageUrl)
         
-        bucketName=o.netloc.rsplit('.s3',1)[0]
+        bucketName = o.netloc.rsplit('.s3',1)[0]
         KEY=o.path
         KEY=KEY[1:]
         print KEY
         print bucketName
-        downloadedFileName='local_image.'
-        downloadedFileName=downloadedFileName+extension
+        downloadedFileName = 'local_image.'
+        downloadedFileName = downloadedFileName+extension
 
 
-        s3.Bucket(bucketName).download_file(KEY, downloadedFileName)
+        try:
+            s3.Bucket(bucketName).download_file(KEY, downloadedFileName)
+        except:
+            newBucketName=KEY.rsplit('/',1)[0]
+            s3.Bucket(newBucketName).download_file(KEY, downloadedFileName)
 
         file = 'local_image.'+extension
         name = file.rsplit('.', 1)[0]
         if name and allowed_file(file):
             originalFilename = file
             #file.save(os.path.join(app.config['UPLOAD_FOLDER'], originalFilename))
-            path=app.config['UPLOAD_FOLDER']+'/'+originalFilename
+            path = app.config['UPLOAD_FOLDER']+'/'+originalFilename
             scanflask(file, app.static_url_path +'/scannedImages/', extension)
 
-            s3c=boto3.client('s3' ,region_name='ap-southeast-1')
+            s3c = boto3.client('s3' ,region_name='ap-southeast-1')
             
-            stamp= str(int(time.time()))
+            stamp = str(int(time.time()))
             
             data1 = open(app.static_url_path + '/scannedImages/_clear.'+extension, 'rb')
             key = 'clear'+stamp+'.'+extension
